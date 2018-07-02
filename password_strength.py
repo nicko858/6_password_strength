@@ -140,7 +140,7 @@ def get_password_strength(password, black_list_file):
     if passwd_score > 10:
         passwd_score = 10
     elif passwd_score < 0:
-        passwd_score = 0
+        passwd_score = 1
     return passwd_score
 
 
