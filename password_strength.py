@@ -35,24 +35,28 @@ def get_user_password():
     return password
 
 
-def chars_exist(password, mode):
+def chars_exist(password, mode, passwd_score):
     if mode == 'any':
         for char in list(password):
             if char.isalpha():
                 return True
     elif mode == 'all':
-        return password.isalpha()
+        if password.isalpha():
+            passwd_score -= 2
+        return passwd_score
 
 
-def exist_same_chars(password):
-    return password.lower().count(password[0]) == len(password)
+def check_exist_same_chars(password, passwd_score):
+    if password.lower().count(password[0]) == len(password):
+        passwd_score -= 2
+    return passwd_score
 
 
 def get_password_length(password):
     return len(password)
 
 
-def digits_exist(password, mode):
+def digits_exist(password, mode, passwd_score):
     if mode == 'any':
         digit_count = sum(c.isdigit() for c in password)
         if digit_count >= 1:
@@ -60,7 +64,9 @@ def digits_exist(password, mode):
         else:
             return False
     elif mode == 'all':
-        return password.isdigit()
+        if password.isdigit():
+            passwd_score -= 2
+        return passwd_score
 
 
 def exist_upper_and_lower_case(password):
@@ -83,12 +89,14 @@ def get_black_list(black_list_file):
         return source_file.read()
 
 
-def is_date(password):
+def is_date(password, passwd_score):
     date_present = bool(re.match(
         "(\d{2})[/.-](\d{2})[/.-](\d{4})$",
         password
     ))
-    return date_present
+    if date_present:
+        passwd_score -= 1
+    return passwd_score
 
 
 def is_email(password):
@@ -98,16 +106,38 @@ def is_email(password):
     return is_email
 
 
-def is_phone_number(password):
+def is_phone_number(password, passwd_score):
     phone_pattern = re.compile(r'^(\d{3})\D+(\d{3})\D+(\d{2})\D+(\d{2})$')
     if bool(phone_pattern.search(password)):
-        return True
-    else:
-        return False
+        passwd_score -= 1
+    return passwd_score
 
 
-def black_list_exist(password, black_list_file):
-    return password in black_list_file
+def check_digits_and_chars_exist(password, passwd_score):
+    if digits_exist(password, 'any', passwd_score)\
+            and chars_exist(password, 'any', passwd_score):
+        passwd_score += 2
+    return passwd_score
+
+
+def check_digits_and_upper_lower_exist(password, passwd_score):
+    if digits_exist(password, 'any', passwd_score) \
+            and exist_upper_and_lower_case(password):
+        passwd_score += 3
+    return passwd_score
+
+
+def check_special_chars_and_upper_lower_exist(password, passwd_score):
+    if exist_special_chars(password) \
+            and exist_upper_and_lower_case(password):
+        passwd_score += 4
+    return passwd_score
+
+
+def check_black_list_exist(password, black_list_file, passwd_score):
+    if password in black_list_file:
+        passwd_score -= 3
+    return passwd_score
 
 
 def get_password_strength(password, black_list_file):
@@ -115,31 +145,26 @@ def get_password_strength(password, black_list_file):
     passwd_length = get_password_length(password)
     if passwd_length >= min_password_length:
         passwd_score = 5
-        if black_list_exist(password, black_list_file):
-            passwd_score -= 3
-        if exist_same_chars(password):
-            passwd_score -= 2
-        if digits_exist(password, 'any') and chars_exist(password, 'any'):
-            passwd_score += 2
-        if digits_exist(password, 'any') and\
-                exist_upper_and_lower_case(password):
-            passwd_score += 3
-        if is_phone_number(password):
-            passwd_score -= 1
-        if is_date(password):
-            passwd_score -= 1
-        if chars_exist(password, 'all'):
-            passwd_score -= 2
-        if digits_exist(password, 'all'):
-            passwd_score -= 2
-        if (exist_special_chars(password) and
-                exist_upper_and_lower_case(password)):
-            passwd_score += 4
+        result_1 = check_black_list_exist(
+            password,
+            black_list_file,
+            passwd_score)
+        result_2 = check_exist_same_chars(password, result_1)
+        result_3 = chars_exist(password, 'all', result_2)
+        result_4 = check_digits_and_chars_exist(password, result_3)
+        result_5 = check_digits_and_upper_lower_exist(password, result_4)
+        result_6 = is_phone_number(password, result_5)
+        result_7 = is_date(password, result_6)
+        result_8 = digits_exist(password, 'all', result_7)
+        result_9 = check_special_chars_and_upper_lower_exist(
+            password,
+            result_8)
+        passwd_score = result_9
     else:
         passwd_score = 1
     if passwd_score > 10:
         passwd_score = 10
-    elif passwd_score < 0:
+    elif passwd_score <= 0:
         passwd_score = 1
     return passwd_score
 
