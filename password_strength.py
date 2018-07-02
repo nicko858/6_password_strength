@@ -15,7 +15,7 @@ def file_check(file_name):
 
 
 def get_args():
-    script_usage = 'python password_strength.py  <path to black_list file>'
+    script_usage = 'python password_strength.py <path to black_list file>'
     parser = argparse.ArgumentParser(
         description='How to run dublicates.py:',
         usage=script_usage
@@ -35,6 +35,15 @@ def get_user_password():
     return password
 
 
+def chars_exist(password, mode):
+    if mode == 'any':
+        for char in list(password):
+            if char.isalpha():
+                return True
+    elif mode == 'all':
+        return password.isalpha()
+
+
 def exist_same_chars(password):
     return password.lower().count(password[0]) == len(password)
 
@@ -43,9 +52,15 @@ def get_password_length(password):
     return len(password)
 
 
-def digits_exist(password):
-    digit_count = sum(c.isdigit() for c in password)
-    return digit_count
+def digits_exist(password, mode):
+    if mode == 'any':
+        digit_count = sum(c.isdigit() for c in password)
+        if digit_count >= 1:
+            return True
+        else:
+            return False
+    elif mode == 'all':
+        return password.isdigit()
 
 
 def exist_upper_and_lower_case(password):
@@ -85,17 +100,10 @@ def is_email(password):
 
 def is_phone_number(password):
     phone_pattern = re.compile(r'^(\d{3})\D+(\d{3})\D+(\d{2})\D+(\d{2})$')
-    return bool(phone_pattern.search(password))
-
-
-def check_passwd_length(password):
-    if 8 < password < 12:
-        return "9"
-    elif password > 12:
-        return "10"
+    if bool(phone_pattern.search(password)):
+        return True
     else:
-        return "3"
-
+        return False
 
 
 def black_list_exist(password, black_list_file):
@@ -103,28 +111,37 @@ def black_list_exist(password, black_list_file):
 
 
 def get_password_strength(password, black_list_file):
-    if black_list_exist(password, black_list_file):
-        return "1"
-    if exist_same_chars(password):
-        return "2"
-    if digits_exist(password):
-        if is_phone_number(password):
-            return "5"
-        if is_date(password):
-            return "4"
-        digits_count = digits_exist(password)
-        if digits_count > 1:
-            return "6"
-        else:
-            return "3"
-    if exist_special_chars(password):
-        if is_email(password):
-            return "2"
-        return "8"
-    if exist_upper_and_lower_case(password):
-        return "7"
+    min_password_length = 6
     passwd_length = get_password_length(password)
-    return check_passwd_length(passwd_length)
+    if passwd_length >= min_password_length:
+        passwd_score = 5
+        if black_list_exist(password, black_list_file):
+            passwd_score -= 3
+        if exist_same_chars(password):
+            passwd_score -= 2
+        if digits_exist(password, 'any') and chars_exist(password, 'any'):
+            passwd_score += 2
+        if digits_exist(password, 'any') and\
+                exist_upper_and_lower_case(password):
+            passwd_score += 3
+        if is_phone_number(password):
+            passwd_score -= 1
+        if is_date(password):
+            passwd_score -= 1
+        if chars_exist(password, 'all'):
+            passwd_score -= 2
+        if digits_exist(password, 'all'):
+            passwd_score -= 2
+        if (exist_special_chars(password) and
+                exist_upper_and_lower_case(password)):
+            passwd_score += 4
+    else:
+        passwd_score = 1
+    if passwd_score > 10:
+        passwd_score = 10
+    elif passwd_score < 0:
+        passwd_score = 0
+    return passwd_score
 
 
 if __name__ == "__main__":
