@@ -1,13 +1,12 @@
 import re
 import argparse
-from os.path import exists, isfile
+from os.path import isfile
+import getpass
+import string
 
 
-def file_check(file_name):
-    if not exists(file_name):
-        msg_exist = "No such file or directory - '{}' !".format(file_name)
-        raise argparse.ArgumentTypeError(msg_exist)
-    elif not isfile(file_name):
+def check_file(file_name):
+    if not isfile(file_name):
         msg_isdir = "'{}' is not a file".format(file_name)
         raise argparse.ArgumentTypeError(msg_isdir)
     else:
@@ -15,88 +14,72 @@ def file_check(file_name):
 
 
 def get_args():
-    script_usage = 'python password_strength.py <path to black_list file>'
+    script_usage = "python password_strength.py <path to black_list file>"
     parser = argparse.ArgumentParser(
-        description='How to run dublicates.py:',
+        description="How to run dublicates.py:",
         usage=script_usage
     )
     parser.add_argument(
-        'black_list_file',
-        type=file_check,
-        help='Specify the path to black_list file'
+        "black_list",
+        nargs='?',
+        type=check_file,
+        help="Specify the path to black_list file"
     )
     args = parser.parse_args()
     return args
 
 
 def get_user_password():
-    print("Enter your password to define the password`s strength:")
-    password = input()
+    password = getpass.getpass(
+        prompt="Enter your password to define the password`s strength:")
     return password
 
 
-def chars_exist(password, mode, passwd_score):
-    if mode == 'any':
-        for char in list(password):
-            if char.isalpha():
-                return True
-    elif mode == 'all':
-        if password.isalpha():
-            passwd_score -= 2
-        return passwd_score
-
-
-def check_exist_same_chars(password, passwd_score):
-    if password.lower().count(password[0]) == len(password):
-        passwd_score -= 2
-    return passwd_score
-
-
-def get_password_length(password):
-    return len(password)
-
-
-def digits_exist(password, mode, passwd_score):
-    if mode == 'any':
-        digit_count = sum(c.isdigit() for c in password)
-        if digit_count >= 1:
+def has_alphabetical(password):
+    for char in password:
+        if char.isalpha():
             return True
-        else:
-            return False
-    elif mode == 'all':
-        if password.isdigit():
-            passwd_score -= 2
-        return passwd_score
 
 
-def exist_upper_and_lower_case(password):
+def is_all_alphabetical(password):
+    return bool(password.isalpha())
+
+
+def has_digit(password):
+    digit_count = sum(c.isdigit() for c in password)
+    return bool(digit_count >= 1)
+
+def is_all_digits(password):
+    return bool(password.isdigit())
+
+
+def check_exist_same_chars(password):
+    return bool(len(password) > len(set(password)))
+
+
+def has_upper_and_lower_case(password):
     letters = set(password)
-    is_mixed_case = any(letter.islower() for letter in letters) and \
-                    any(letter.isupper() for letter in letters)
+    is_mixed_case = (any(letter.islower() for letter in letters)
+                     and any(letter.isupper() for letter in letters))
     return is_mixed_case
 
 
-def exist_special_chars(password):
-    special_chars = set(" !\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~")
-    if special_chars.intersection(password):
-        return True
-    else:
-        return False
+def has_special_chars(password):
+    special_chars = set(string.punctuation)
+    return bool(special_chars.intersection(password))
 
 
-def get_black_list(black_list_file):
-    with open(black_list_file, "r") as source_file:
+def read_black_list(black_list):
+    with open(black_list, "r") as source_file:
         return source_file.read()
 
 
-def is_date(password, passwd_score):
+def is_date(password):
     date_present = bool(re.match(
         "(\d{2})[/.-](\d{2})[/.-](\d{4})$",
         password
     ))
-    if date_present:
-        passwd_score -= 1
-    return passwd_score
+    return date_present
 
 
 def is_email(password):
@@ -106,72 +89,71 @@ def is_email(password):
     return is_email
 
 
-def is_phone_number(password, passwd_score):
-    phone_pattern = re.compile(r'^(\d{3})\D+(\d{3})\D+(\d{2})\D+(\d{2})$')
-    if bool(phone_pattern.search(password)):
-        passwd_score -= 1
-    return passwd_score
+def is_phone_number(password):
+    phone_pattern = re.compile(r"^(\d{3})\D+(\d{3})\D+(\d{2})\D+(\d{2})$")
+    return bool(phone_pattern.search(password))
 
 
-def check_digits_and_chars_exist(password, passwd_score):
-    if digits_exist(password, 'any', passwd_score)\
-            and chars_exist(password, 'any', passwd_score):
-        passwd_score += 2
-    return passwd_score
+def has_digit_and_has_alphabetical(password):
+    return bool(has_digit(password) and has_alphabetical(password))
 
 
-def check_digits_and_upper_lower_exist(password, passwd_score):
-    if digits_exist(password, 'any', passwd_score) \
-            and exist_upper_and_lower_case(password):
-        passwd_score += 3
-    return passwd_score
+def has_digit_and_upper_lower_exist(password):
+    return bool(has_digit(password)
+                and has_upper_and_lower_case(password))
 
 
-def check_special_chars_and_upper_lower_exist(password, passwd_score):
-    if exist_special_chars(password) \
-            and exist_upper_and_lower_case(password):
-        passwd_score += 4
-    return passwd_score
+def has_special_chars_and_has_upper_lower(password):
+    return bool(
+        has_special_chars(password)
+        and has_upper_and_lower_case(password))
 
 
-def check_black_list_exist(password, black_list_file, passwd_score):
-    if password in black_list_file:
-        passwd_score -= 3
-    return passwd_score
+def is_in_black_list(password, black_list):
+    return bool(password in black_list)
 
 
-def get_password_strength(password, black_list_file):
+def get_password_strength(password, black_list):
     min_password_length = 6
-    passwd_length = get_password_length(password)
+    passwd_length = len(password)
     if passwd_length >= min_password_length:
         passwd_score = 5
-        result_1 = check_black_list_exist(
-            password,
-            black_list_file,
-            passwd_score)
-        result_2 = check_exist_same_chars(password, result_1)
-        result_3 = chars_exist(password, 'all', result_2)
-        result_4 = check_digits_and_chars_exist(password, result_3)
-        result_5 = check_digits_and_upper_lower_exist(password, result_4)
-        result_6 = is_phone_number(password, result_5)
-        result_7 = is_date(password, result_6)
-        result_8 = digits_exist(password, 'all', result_7)
-        result_9 = check_special_chars_and_upper_lower_exist(
-            password,
-            result_8)
-        passwd_score = result_9
+        reference_scores = {
+            check_exist_same_chars: -2,
+            is_all_alphabetical: -2,
+            has_digit_and_has_alphabetical: 2,
+            has_digit_and_upper_lower_exist: 3,
+            is_phone_number: -1,
+            is_date: -1,
+            is_all_digits: -2,
+            has_special_chars_and_has_upper_lower: 4,
+            is_in_black_list: -3
+        }
+        if not black_list:
+            del reference_scores[is_in_black_list]
+        result_of_check = {}
+        for func in reference_scores.keys():
+            if func == is_in_black_list:
+                result_of_check[func] = func(password, black_list)
+            else:
+                result_of_check[func] = func(password)
+        for (check_name, result) in result_of_check.items():
+            if result:
+                passwd_score += reference_scores.get(check_name)
     else:
         passwd_score = 1
-    if passwd_score > 10:
-        passwd_score = 10
-    elif passwd_score <= 0:
-        passwd_score = 1
+    passwd_score = max(1, min(passwd_score, 10))
     return passwd_score
 
 
 if __name__ == "__main__":
     args = get_args()
-    black_list_file = get_black_list(args.black_list_file)
+    try:
+        black_list = read_black_list(args.black_list)
+    except (FileNotFoundError, TypeError):
+        black_list = ''
+        print("Can't find a black-list file!\n"
+              "Continue without black-list considering...")
     password = get_user_password()
-    password_strength = get_password_strength(password, black_list_file)
+    password_strength = get_password_strength(password, black_list)
     print("Your password strength equals {}.".format(password_strength))
