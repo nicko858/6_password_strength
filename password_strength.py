@@ -115,34 +115,36 @@ def is_in_black_list(password, black_list):
 
 def get_password_strength(password, black_list):
     min_password_length = 6
+    min_score = 1
+    max_score = 10
     passwd_length = len(password)
-    if passwd_length >= min_password_length:
-        passwd_score = 5
-        reference_scores = {
-            check_exist_same_chars: -2,
-            is_all_alphabetical: -2,
-            has_digit_and_has_alphabetical: 2,
-            has_digit_and_upper_lower_exist: 3,
-            is_phone_number: -1,
-            is_date: -1,
-            is_all_digits: -2,
-            has_special_chars_and_has_upper_lower: 4,
-            is_in_black_list: -3
-        }
-        if not black_list:
-            del reference_scores[is_in_black_list]
-        result_of_check = {}
-        for func in reference_scores.keys():
-            if func == is_in_black_list:
-                result_of_check[func] = func(password, black_list)
-            else:
-                result_of_check[func] = func(password)
-        for (check_name, result) in result_of_check.items():
-            if result:
-                passwd_score += reference_scores.get(check_name)
-    else:
+    reference_scores = {
+        check_exist_same_chars: -2,
+        is_all_alphabetical: -2,
+        has_digit_and_has_alphabetical: 2,
+        has_digit_and_upper_lower_exist: 3,
+        is_phone_number: -1,
+        is_date: -1,
+        is_all_digits: -2,
+        has_special_chars_and_has_upper_lower: 4,
+        is_in_black_list: -3
+    }
+    if not black_list:
+        del reference_scores[is_in_black_list]
+    if passwd_length < min_password_length:
         passwd_score = 1
-    passwd_score = max(1, min(passwd_score, 10))
+        return passwd_score
+    passwd_score = 5
+    result_of_check = {}
+    for func in reference_scores.keys():
+        if func == is_in_black_list:
+            result_of_check[func] = func(password, black_list)
+        else:
+            result_of_check[func] = func(password)
+    for (check_name, result) in result_of_check.items():
+        if result:
+            passwd_score += reference_scores.get(check_name)
+    passwd_score = max(min_score, min(passwd_score, max_score))
     return passwd_score
 
 
