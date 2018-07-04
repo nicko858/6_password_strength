@@ -24,6 +24,7 @@ Module ```password_strength.py``` contains the following functions:
 - ```is_in_black_list()```
 - ```is_phone_number()```
 - ```read_black_list()```
+- ```perform_checks()```
 
 
 The program uses these libraries from Python Standart Library:
