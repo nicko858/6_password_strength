@@ -98,8 +98,7 @@ def has_digit_and_has_alphabetical(password):
 
 
 def has_digit_and_upper_lower_exist(password):
-    return (has_digit(password)
-            and has_upper_and_lower_case(password))
+    return has_digit(password) and has_upper_and_lower_case(password)
 
 
 def has_special_chars_and_has_upper_lower(password):
