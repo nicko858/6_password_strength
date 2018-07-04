@@ -40,25 +40,26 @@ def has_alphabetical(password):
 
 
 def is_all_alphabetical(password):
-    return bool(password.isalpha())
+    return password.isalpha()
 
 
 def has_digit(password):
-    return any(sum(c.isdigit() >=1 for c in password))
+    return any(c.isdigit() >= 1 for c in password)
+
 
 def is_all_digits(password):
-    return bool(password.isdigit())
+    return password.isdigit()
 
 
 def check_exist_same_chars(password):
-    return bool(len(password) > len(set(password)))
+    return len(password) > len(set(password))
 
 
 def has_upper_and_lower_case(password):
     letters = set(password)
     is_mixed_case = (
-            any(letter.islower() for letter in letters) and
-            any(letter.isupper() for letter in letters))
+        any(letter.islower() for letter in letters) and
+        any(letter.isupper() for letter in letters))
     return is_mixed_case
 
 
@@ -93,16 +94,16 @@ def is_phone_number(password):
 
 
 def has_digit_and_has_alphabetical(password):
-    return bool(has_digit(password) and has_alphabetical(password))
+    return has_digit(password) and has_alphabetical(password)
 
 
 def has_digit_and_upper_lower_exist(password):
-    return bool(has_digit(password)
-                and has_upper_and_lower_case(password))
+    return (has_digit(password)
+            and has_upper_and_lower_case(password))
 
 
 def has_special_chars_and_has_upper_lower(password):
-    return bool(
+    return (
         has_special_chars(password)
         and has_upper_and_lower_case(password))
 
