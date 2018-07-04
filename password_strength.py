@@ -36,9 +36,7 @@ def get_user_password():
 
 
 def has_alphabetical(password):
-    for char in password:
-        if char.isalpha():
-            return True
+    return any(char.isalpha() for char in password)
 
 
 def is_all_alphabetical(password):
@@ -46,8 +44,7 @@ def is_all_alphabetical(password):
 
 
 def has_digit(password):
-    digit_count = sum(c.isdigit() for c in password)
-    return bool(digit_count >= 1)
+    return any(sum(c.isdigit() >=1 for c in password))
 
 def is_all_digits(password):
     return bool(password.isdigit())
@@ -59,8 +56,9 @@ def check_exist_same_chars(password):
 
 def has_upper_and_lower_case(password):
     letters = set(password)
-    is_mixed_case = (any(letter.islower() for letter in letters)
-                     and any(letter.isupper() for letter in letters))
+    is_mixed_case = (
+            any(letter.islower() for letter in letters) and
+            any(letter.isupper() for letter in letters))
     return is_mixed_case
 
 
@@ -110,10 +108,10 @@ def has_special_chars_and_has_upper_lower(password):
 
 
 def is_in_black_list(password, black_list):
-    return bool(password in black_list)
+    return password in black_list
 
 
-def perform_checks(password, black_list):
+def perform_checks(password):
     reference_scores = {
         check_exist_same_chars: -2,
         is_all_alphabetical: -2,
@@ -122,17 +120,11 @@ def perform_checks(password, black_list):
         is_phone_number: -1,
         is_date: -1,
         is_all_digits: -2,
-        has_special_chars_and_has_upper_lower: 4,
-        is_in_black_list: -3
+        has_special_chars_and_has_upper_lower: 4
     }
     result_of_check = {}
-    if not black_list:
-        del reference_scores[is_in_black_list]
-    for func in reference_scores.keys():
-        if func == is_in_black_list:
-            result_of_check[func] = func(password, black_list)
-        else:
-            result_of_check[func] = func(password)
+    for func in reference_scores:
+        result_of_check[func] = func(password)
     return reference_scores, result_of_check
 
 
@@ -145,8 +137,9 @@ def get_password_strength(password, black_list):
         passwd_score = 1
         return passwd_score
     passwd_score = 5
-    reference_scores, result_of_check = perform_checks(password,
-                                                       black_list)
+    if is_in_black_list(password, black_list):
+        passwd_score -= 3
+    reference_scores, result_of_check = perform_checks(password)
     for (check_name, result) in result_of_check.items():
         if result:
             passwd_score += reference_scores.get(check_name)
@@ -159,7 +152,7 @@ if __name__ == "__main__":
     try:
         black_list = read_black_list(args.black_list)
     except (FileNotFoundError, TypeError):
-        black_list = ''
+        black_list = []
         print("Can't find a black-list file!\n"
               "Continue without black-list considering...")
     password = get_user_password()
